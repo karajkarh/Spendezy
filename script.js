@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const guestNameInput = document.getElementById('guestNameInput');
     const saveGuestNameBtn = document.getElementById('saveGuestNameBtn');
     const userNameDisplay = document.getElementById('userNameDisplay');
-    const tagline = document.getElementById('tagline');
 
     const expenseManagerTab = document.getElementById('expenseManagerTab');
     const splitExpenseTab = document.getElementById('splitExpenseTab');
@@ -20,13 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const monthSelect = document.getElementById('monthSelect');
     const yearSelect = document.getElementById('yearSelect');
     const currentMonthNameDisplays = document.querySelectorAll('.current-month-display-name');
-    const currentYearDisplay = document.getElementById('currentYearDisplay');
     const categoryBreakdownMonthYear = document.getElementById('categoryBreakdownMonthYear');
     const currencySelect = document.getElementById('currencySelect');
 
     const totalExpensesElement = document.getElementById('totalExpenses');
     const totalIncomeElement = document.getElementById('totalIncome');
     const remainingBalanceElement = document.getElementById('remainingBalance');
+    const transactionListElement = document.getElementById('transactionList');
+    const noTransactionDataElement = document.getElementById('noTransactionData');
 
 
     // --- Data Variables (Simulated for Demo) ---
@@ -35,30 +35,155 @@ document.addEventListener('DOMContentLoaded', () => {
         "July", "August", "September", "October", "November", "December"
     ];
     let userName = 'Guest';
-    let currentCurrency = 'INR (₹)';
+    let currentCurrencySymbol = '₹';
 
-    // Simulated data structure: { 'MonthIndex-Year': { income: 0, expense: 0 } }
+    // Simulated data structure: { 'MonthIndex-Year': { income: 0, expense: 0, transactions: [] } }
     const simulatedData = {
-        '8-2025': { income: 55000, expense: 28500 }, // September 2025 (Current)
-        '7-2025': { income: 60000, expense: 35000 }, // August 2025 (Previous)
-        '6-2025': { income: 45000, expense: 15000 }  // July 2025
+        '8-2025': { 
+            income: 55000, 
+            expense: 28500,
+            transactions: [
+                { type: 'expense', category: 'Food', notes: 'Dinner with friends', amount: 8500 },
+                { type: 'expense', category: 'Rent', notes: 'Monthly apartment rent', amount: 20000 },
+            ]
+        },
+        '7-2025': { 
+            income: 60000, 
+            expense: 35000,
+            transactions: [
+                { type: 'income', category: 'Salary', notes: 'Monthly paycheck', amount: 60000 },
+                { type: 'expense', category: 'Travel', notes: 'Flight to Delhi', amount: 15000 },
+                { type: 'expense', category: 'Shopping', notes: 'New shirt and trousers', amount: 20000 },
+            ]
+        },
+        '6-2025': { 
+            income: 45000, 
+            expense: 15000,
+            transactions: [] // Empty list to test 'No data' state
+        }
     };
 
 
-    // --- 1. INITIAL SPLASH/LOGIN FLOW ---
+    // --- CORE APP FUNCTIONS ---
 
-    // Animate Tagline (as requested)
-    setTimeout(() => {
-        tagline.classList.add('animated');
-    }, 500);
+    // Formats amount with the current currency symbol
+    const formatAmount = (amount) => {
+        // Simple Indian locale formatting for demonstration
+        return `${currentCurrencySymbol}${amount.toLocaleString('en-IN')}`;
+    };
 
-    // Step 1: Click 'Continue as Guest'
-    continueGuestBtn.addEventListener('click', () => {
-        guestNameModal.classList.add('active');
-        // NOTE: Sound is intentionally skipped here as we don't have the audio file
+    // Renders the transaction list based on selected data
+    const renderTransactions = (transactions) => {
+        transactionListElement.innerHTML = '';
+        if (!transactions || transactions.length === 0) {
+            noTransactionDataElement.classList.remove('hidden');
+            return;
+        }
+
+        noTransactionDataElement.classList.add('hidden');
+        
+        transactions.forEach(t => {
+            const item = document.createElement('div');
+            item.classList.add('transaction-item');
+            
+            const amountClass = t.type === 'expense' ? 'transaction-amount' : 'transaction-amount income';
+            
+            item.innerHTML = `
+                <span class="transaction-category">${t.category}</span>
+                <span class="transaction-notes">${t.notes}</span>
+                <span class="${amountClass}">${formatAmount(t.amount)}</span>
+            `;
+            transactionListElement.appendChild(item);
+        });
+    };
+    
+    // Function to handle data loading and UI updates
+    const loadExpenseData = () => {
+        const selectedMonthIndex = parseInt(monthSelect.value);
+        const selectedYear = yearSelect.value;
+        const monthName = months[selectedMonthIndex];
+        const dataKey = `${selectedMonthIndex}-${selectedYear}`;
+        
+        // Retrieve simulated data
+        const data = simulatedData[dataKey] || { income: 0, expense: 0, transactions: [] };
+        
+        // --- 3a. Update Expense Card Totals ---
+        const remaining = data.income - data.expense;
+
+        totalExpensesElement.textContent = formatAmount(data.expense);
+        totalIncomeElement.textContent = formatAmount(data.income);
+        remainingBalanceElement.textContent = formatAmount(remaining);
+        
+        // Update transaction count
+        const expenseCount = data.transactions.filter(t => t.type === 'expense').length;
+        document.getElementById('expenseTransactions').textContent = `${expenseCount} transactions this period`;
+
+        // --- 3b. Update UI Text ---
+        currentMonthNameDisplays.forEach(el => {
+            el.textContent = monthName;
+        });
+
+        // Update the combined month/year selector text
+        const monthOption = monthSelect.options[monthSelect.selectedIndex];
+        if (monthOption) {
+            monthOption.textContent = monthName; // Update text for month select
+        }
+        
+        categoryBreakdownMonthYear.textContent = `${monthName} ${selectedYear}`;
+
+        // --- 3c. Render Transactions ---
+        renderTransactions(data.transactions);
+    };
+
+    // --- INITIALIZATION ---
+
+    const populateDateSelectors = () => {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        // Populate Months
+        months.forEach((month, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = month;
+            monthSelect.appendChild(option);
+            if (index === currentMonth) option.selected = true;
+        });
+
+        // Populate Years (Current year and last 4 years)
+        for (let i = 0; i < 5; i++) {
+            const year = currentYear - i;
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+            if (year === currentYear) option.selected = true;
+        }
+    };
+    
+    // --- EVENT LISTENERS ---
+
+    // Initial load
+    populateDateSelectors();
+    loadExpenseData();
+    
+    // Event listeners for month/year change
+    monthSelect.addEventListener('change', loadExpenseData);
+    yearSelect.addEventListener('change', loadExpenseData);
+
+    // Currency Switch Logic
+    currencySelect.addEventListener('change', () => {
+        // Extract the symbol from the selected option (e.g., "₹ INR" -> "₹")
+        currentCurrencySymbol = currencySelect.value.split(' ')[0]; 
+        loadExpenseData(); // Re-render data with the new symbol
     });
 
-    // Step 2: Save Name and Enter App
+    // Login Flow
+    continueGuestBtn.addEventListener('click', () => {
+        guestNameModal.classList.add('active');
+    });
+
     saveGuestNameBtn.addEventListener('click', () => {
         const inputName = guestNameInput.value.trim();
         if (inputName) {
@@ -72,48 +197,22 @@ document.addEventListener('DOMContentLoaded', () => {
         
         setTimeout(() => {
             mainAppScreen.classList.add('active');
-            alert(`Hello ${userName}, let's start your financial journey!`); 
+            alert(`Hello ${userName}, welcome to Spendezy!`); 
             userNameDisplay.textContent = userName;
-            
-            // Load initial data for the current month after login
-            loadExpenseData();
         }, 300);
     });
-
-
-    // --- 2. MAIN APP FUNCTIONALITY ---
-
-    // Toggle User Dropdown Menu
+    
+    // Navigation and Dropdown Logic
     userMenuToggle.addEventListener('click', (e) => {
         e.stopPropagation();
         userDropdown.classList.toggle('active');
     });
 
-    // Close User Dropdown when clicking outside
     document.addEventListener('click', (e) => {
         if (!userMenuToggle.contains(e.target) && !userDropdown.contains(e.target)) {
             userDropdown.classList.remove('active');
         }
     });
-
-    // Currency Switch Logic (Updates symbol across the app)
-    currencySelect.addEventListener('change', () => {
-        currentCurrency = currencySelect.options[currencySelect.selectedIndex].text;
-        loadExpenseData(); // Reload data to apply new currency format
-    });
-
-    // Tab Switching Logic
-    const switchTab = (activeTab, activeView) => {
-        // Deactivate all tabs and views
-        expenseManagerTab.classList.remove('active');
-        splitExpenseTab.classList.remove('active');
-        expenseManagerView.classList.remove('active');
-        splitExpenseView.classList.remove('active');
-
-        // Activate the selected tab and view
-        activeTab.classList.add('active');
-        activeView.classList.add('active');
-    };
 
     expenseManagerTab.addEventListener('click', () => {
         switchTab(expenseManagerTab, expenseManagerView);
@@ -123,95 +222,23 @@ document.addEventListener('DOMContentLoaded', () => {
         switchTab(splitExpenseTab, splitExpenseView);
     });
     
-    // Split Expense Screen Group Navigation (Simulated)
-    const groupList = document.getElementById('groupList');
-    const groupDetail = document.getElementById('groupDetail');
-    const backToGroups = document.getElementById('backToGroups');
+    // Utility for tab switching
+    const switchTab = (activeTab, activeView) => {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+        activeTab.classList.add('active');
+        activeView.classList.add('active');
+    };
     
+    // Split Expense Navigation
     document.getElementById('createGroupBtn').addEventListener('click', () => {
-        groupList.classList.remove('active');
-        groupDetail.classList.add('active');
+        document.getElementById('groupList').classList.remove('active');
+        document.getElementById('groupDetail').classList.add('active');
     });
     
-    backToGroups.addEventListener('click', (e) => {
+    document.getElementById('backToGroups').addEventListener('click', (e) => {
         e.preventDefault();
-        groupList.classList.add('active');
-        groupDetail.classList.remove('active');
+        document.getElementById('groupList').classList.add('active');
+        document.getElementById('groupDetail').classList.remove('active');
     });
-
-
-    // --- 3. EXPENSE MANAGER DATA LOGIC ---
-
-    const populateDateSelectors = () => {
-        // Populate Months
-        months.forEach((month, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = month;
-            monthSelect.appendChild(option);
-        });
-
-        // Populate Years (Current year and last 4 years)
-        const currentYear = new Date().getFullYear();
-        for (let i = 0; i < 5; i++) {
-            const year = currentYear - i;
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            yearSelect.appendChild(option);
-        }
-
-        // Set current month/year as default selection
-        const now = new Date();
-        monthSelect.value = now.getMonth();
-        yearSelect.value = now.getFullYear();
-    };
-    
-    // Function to handle data loading and UI updates
-    const loadExpenseData = () => {
-        const selectedMonthIndex = parseInt(monthSelect.value);
-        const selectedYear = yearSelect.value;
-        const monthName = months[selectedMonthIndex];
-        const dataKey = `${selectedMonthIndex}-${selectedYear}`;
-        
-        // Retrieve simulated data (default to zeros if no data exists)
-        const data = simulatedData[dataKey] || { income: 0, expense: 0 };
-        
-        // --- 3a. Update Expense Card Totals ---
-        const remaining = data.income - data.expense;
-        
-        // Format the amount with the selected currency
-        const formatAmount = (amount) => {
-            const [symbol, code] = currentCurrency.match(/\(([^)]+)\)/) ? [currentCurrency.match(/\(([^)]+)\)/)[1], currentCurrency.split(' ')[0]] : ['₹', 'INR'];
-            return `${symbol}${amount.toLocaleString('en-IN')}`;
-        };
-
-        totalExpensesElement.textContent = formatAmount(data.expense);
-        totalIncomeElement.textContent = formatAmount(data.income);
-        remainingBalanceElement.textContent = formatAmount(remaining);
-        
-        // --- 3b. Update UI Text ---
-        currentMonthNameDisplays.forEach(el => {
-            el.textContent = monthName;
-        });
-
-        // Update the combined month/year display
-        currentYearDisplay.textContent = `${monthName} ${selectedYear}`;
-
-        // Update the category breakdown title
-        categoryBreakdownMonthYear.textContent = `${monthName} ${selectedYear}`;
-        
-        console.log(`Data loaded for: ${monthName}, ${selectedYear}. Income: ${data.income}, Expense: ${data.expense}`);
-    };
-
-    // Event listeners for month/year change
-    monthSelect.addEventListener('change', loadExpenseData);
-    yearSelect.addEventListener('change', loadExpenseData);
-
-    // Initialize selectors and load initial data
-    populateDateSelectors();
-    
-    // NOTE: loadExpenseData() is called after successful guest login to ensure the app is visible first.
-    // However, it must be called here to set the correct initial state before login as well.
-    loadExpenseData();
 });
