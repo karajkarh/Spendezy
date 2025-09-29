@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spendezy - Track Smart, Spend Eazy!</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+
+    <audio id="paymentSound" src="payment-success.mp3" preload="auto"></audio>
+
+    <div id="splashScreen" class="screen active">
+        <div class="splash-content">
+            <i class="fas fa-wallet wallet-icon"></i>
+            <h1 class="app-title">Spendezy</h1>
+            <p id="tagline" class="tagline">Track Smart, Spend Eazy!</p>
+            
+            <div class="auth-buttons">
+                <button class="btn btn-google"><i class="fas fa-sign-in-alt"></i> Sign In with Google</button>
+                <button id="continueGuestBtn" class="btn btn-guest">Continue as Guest <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="guestNameModal" class="modal">
+        <div class="modal-content">
+            <h2>Welcome!</h2>
+            <p>Please tell us your name to start your financial journey.</p>
+            <input type="text" id="guestNameInput" placeholder="Enter your name">
+            <button id="saveGuestNameBtn" class="btn btn-primary">Let's Start!</button>
+        </div>
+    </div>
+
+    <div id="mainAppScreen" class="screen">
+        <nav class="navbar">
+            <div class="nav-left">
+                <i class="fas fa-wallet wallet-icon-sm"></i>
+                <span class="app-title-sm">Spendezy</span>
+            </div>
+            <div class="nav-right">
+                <div class="currency-selector">
+                    <select id="currencySelect">
+                        <option value="INR" selected>INR (₹)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="JPY">JPY (¥)</option>
+                    </select>
+                </div>
+                
+                <div class="user-menu-container">
+                    <i class="fas fa-user user-icon" id="userMenuToggle"></i>
+                    <div id="userDropdown" class="user-dropdown">
+                        <span id="userNameDisplay" class="guest-name-display">Guest</span>
+                        <a href="#" class="dropdown-item"><i class="fas fa-arrow-right"></i> Sign Up & Save</a>
+                        <a href="#" class="dropdown-item"><i class="fas fa-palette"></i> Theme <i class="fas fa-chevron-right dropdown-arrow"></i></a>
+                        <a href="#" class="dropdown-item" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <div class="tab-buttons">
+                <button id="expenseManagerTab" class="tab-btn active">Expense Manager</button>
+                <button id="splitExpenseTab" class="tab-btn">Split Expense</button>
+            </div>
+
+            <div id="expenseManagerView" class="view active">
+                
+                <div class="card expense-card">
+                    <div class="card-header">
+                        <h3>Total Expenses - <span class="current-month-display-name">September</span></h3>
+                        <div class="month-year-selector">
+                            <select id="monthSelect"></select>
+                            <select id="yearSelect"></select>
+                            <span id="currentYearDisplay" class="year-display">2025</span>
+                        </div>
+                    </div>
+                    <p class="card-amount" id="totalExpenses">₹0.00</p>
+                    <p class="card-subtext" id="expenseTransactions">0 transactions this period</p>
+                    <button class="btn btn-primary btn-add-expense"><i class="fas fa-plus-circle"></i> Add Expense</button>
+                </div>
+
+                <div class="card income-card">
+                    <div class="card-header">
+                        <h3>Total Income - <span class="current-month-display-name">September</span></h3>
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <p class="card-amount" id="totalIncome">₹0.00</p>
+                    <p class="card-subtext">Your total income this period</p>
+                    <button class="btn btn-primary btn-add-income"><i class="fas fa-plus-circle"></i> Add Income</button>
+                </div>
+
+                <div class="card balance-card">
+                    <h3>Remaining Balance</h3>
+                    <p class="card-amount" id="remainingBalance">₹0.00</p>
+                    <p class="card-subtext">Money left for <span class="current-month-display-name">September</span></p>
+                </div>
+
+                <div class="card previous-balance-card">
+                    <h3>Previous Month Balance</h3>
+                    <p class="card-amount">₹0.00</p>
+                </div>
+
+                <div class="card expense-list-card">
+                    <div class="expense-list-header">
+                        <span>Category</span>
+                        <span>Notes</span>
+                        <span class="text-right">Amount</span>
+                    </div>
+                    <p class="no-data">No expenses recorded yet.</p>
+                </div>
+
+                <div class="card category-breakdown-card">
+                    <h3>Category Breakdown</h3>
+                    <p class="card-subtext">Spending distribution for <span id="categoryBreakdownMonthYear">September 2025</span></p>
+                    <div class="pie-chart-header">
+                        <i class="fas fa-chart-pie"></i>
+                        <select>
+                            <option>Pie Chart</option>
+                        </select>
+                    </div>
+                    <div class="pie-chart-placeholder">
+                        <p class="no-data">No expense data to display for this month.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div id="splitExpenseView" class="view">
+                <div id="groupList" class="split-view-section active">
+                    <div class="split-header">
+                        <h2>Expense Groups</h2>
+                        <button id="createGroupBtn" class="btn btn-primary"><i class="fas fa-plus-circle"></i> Create Group</button>
+                    </div>
+                    <p class="sub-header">Create groups to split expenses with friends and family.</p>
+                    
+                    <div class="no-groups">
+                        <i class="fas fa-user-friends group-icon"></i>
+                        <p>No Groups Yet</p>
+                        <p class="sub-text">Create a group to start splitting expenses.</p>
+                    </div>
+                </div>
+                
+                <div id="groupDetail" class="split-view-section">
+                    <div class="group-detail-header">
+                        <a href="#" id="backToGroups"><i class="fas fa-arrow-left"></i> Back to Groups</a>
+                        <button class="btn btn-primary btn-settle"><i class="fas fa-handshake"></i> Settle Up</button>
+                    </div>
+                    <h2 id="groupName">Gurgoan</h2>
+                    <p class="sub-header">Manage your group members and expenses.</p>
+
+                    <div class="card">
+                        <h3>Members & Balances</h3>
+                        <button class="btn btn-secondary btn-add-member"><i class="fas fa-user-plus"></i> Add Member</button>
+                        <div id="memberList">
+                            <div class="member-item">
+                                <span>G</span>
+                                <div class="member-info">
+                                    <p>Guest</p>
+                                    <small class="settled">Settled up</small>
+                                </div>
+                                <i class="fas fa-trash-alt delete-member"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Expenses</h3>
+                        <button class="btn btn-primary btn-add-expense"><i class="fas fa-plus-circle"></i> Add Expense</button>
+                        <p class="no-data">No expenses yet.</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
